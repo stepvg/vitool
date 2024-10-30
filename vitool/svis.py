@@ -60,62 +60,62 @@ def images(images, key=None, transpose=False, tile_shape=None, figsize=(16, 9)):
 		n = tile_shape.__len__()
 	except AttributeError:
 		column_count = 0
-		raw_count = tile_shape if tile_shape else 0
+		row_count = tile_shape if tile_shape else 0
 	else:
 		tile_shape = list(tile_shape)
 		if n < 2:
 			tile_shape += [0]*(2-n)
-		raw_count, column_count = tile_shape
+		row_count, column_count = tile_shape
 	if transpose:
-		ra_count, col_count = column_count, raw_count
+		ro_count, col_count = column_count, row_count
 	else:
-		ra_count, col_count = raw_count, column_count
-	if ra_count:
-		raws = [e for e, _ in zip(images, range(ra_count))]
+		ro_count, col_count = row_count, column_count
+	if ro_count:
+		rows = [e for e, _ in zip(images, range(ro_count))]
 	else:
-		raws = list(images)
-	ra_count = len(raws)
-	if not ra_count:
+		rows = list(images)
+	ro_count = len(rows)
+	if not ro_count:
 		print('`images` is empty!')
 		return
 	if key is not None:
-		raws = list(map(key, raws))
+		rows = list(map(key, rows))
 	try:
-		raws[0].shape
+		rows[0].shape
 	except AttributeError:
-		for i in range(ra_count):
+		for i in range(ro_count):
 			if col_count:
-				raws[i] = [e for e, _ in zip(raws[i], range(col_count))]
+				rows[i] = [e for e, _ in zip(rows[i], range(col_count))]
 			else:
-				raws[i] = list(raws[i])
-		col_count = len(raws[0])
+				rows[i] = list(rows[i])
+		col_count = len(rows[0])
 		if col_count == 1:
-			raws = [e[0] for e in raws]
-		elif ra_count == 1:
-			raws = raws[0]
+			rows = [e[0] for e in rows]
+		elif ro_count == 1:
+			rows = rows[0]
 	else:
 		col_count = 1
 	if transpose:
-		figure, axes = plt.subplots(col_count, ra_count)
+		figure, axes = plt.subplots(col_count, ro_count)
 	else:
-		figure, axes = plt.subplots(ra_count, col_count)
+		figure, axes = plt.subplots(ro_count, col_count)
 	figure.set_size_inches(figsize)
-	if ra_count == 1 or col_count == 1:
-		if ra_count == 1 and col_count == 1:
-			axes.imshow(raws[0])
+	if ro_count == 1 or col_count == 1:
+		if ro_count == 1 and col_count == 1:
+			axes.imshow(rows[0])
 			axes.axis('off')
 		else:
-			for i, img in enumerate(raws):
+			for i, img in enumerate(rows):
 				axes[i].imshow(img)
 				axes[i].axis('off')
 		plt.show()
 		return
-	for i in range(ra_count):
+	for i in range(ro_count):
 		for j in range(col_count):
 			if transpose:
-				axes[j, i].imshow(raws[i][j])
+				axes[j, i].imshow(rows[i][j])
 				axes[j, i].axis('off')
 			else:
-				axes[i, j].imshow(raws[i][j])
+				axes[i, j].imshow(rows[i][j])
 				axes[i, j].axis('off')
 	plt.show()

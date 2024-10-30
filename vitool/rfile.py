@@ -10,15 +10,19 @@ logger = logging.getLogger(__name__)
 verbose = Verbose(logger)
 
 
-def download(url, file_path='./', redownload=False, find_url=False, extract=True, quiet=False, https=None):
+def download(url, file_path='./', extract_to=True, find_url=False, redownload=False, quiet=False, https=None):
 	with verbose.quiet(quiet):
 		if https is None:
 			https = Https()
 		url, file_path = GetLink.and_file_path(url, file_path, redownload, find_url, https=https)
 		if url is not None:
 			download_to(file_path, url, redownload, https=https)
-		if extract:
+		if extract_to is False or extract_to is None:
+			return
+		if extract_to is True:
 			Extract(file_path)
+		else:
+			Extract(file_path, extract_to)
 
 
 def download_to(file_path, url, redownload=False, quiet=False, https=None):
@@ -40,7 +44,10 @@ class Extract:
 	def __init__(self, file_path, extract_path=None, quiet=False):
 		with verbose.quiet(quiet):
 			if extract_path is None:
-				extract_path = file_path.with_suffix('')
+				if file_path.suffix:
+					extract_path = file_path.with_suffix('')
+				else:
+					extract_path = file_path.with_name(file_path.name + '_dir')
 			else:
 				extract_path = pathlib.Path(extract_path).expanduser()
 			if extract_path.exists():
@@ -146,10 +153,10 @@ class Https:
 				unit="B",
 				unit_scale=True)
 		with man_pb as pbar:
+			pbar.set_postfix(file=file_path.name, refresh=False)
 			with open(file_path, 'wb') as f:
 				for chunk in response.iter_content(chunk_size=self.chunk_size):
 					f.write(chunk)
-					pbar.set_postfix(file=file_path.name, refresh=False)
 					pbar.update(len(chunk))
 					#~ except requests.exceptions.ChunkedEncodingError as er: pass
 

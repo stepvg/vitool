@@ -10,7 +10,7 @@ with open('README.md', 'r') as readme_file:
 if __name__ == '__main__':
 	setup(
 		name='vitool',
-		version='1.0.2',
+		version='1.0.3',
 		author='stepvg',
 		author_email='stepvg@ya.ru',
 		description='A simple tools.',
