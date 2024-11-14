@@ -18,11 +18,12 @@ def download(url, file_path='./', extract_to=True, find_url=False, redownload=Fa
 		if url is not None:
 			download_to(file_path, url, redownload, https=https)
 		if extract_to is False or extract_to is None:
-			return
+			return file_path
 		if extract_to is True:
-			Extract(file_path)
+			ex = Extract(file_path)
 		else:
-			Extract(file_path, extract_to)
+			ex = Extract(file_path, extract_to)
+		return ex.extract_path
 
 
 def download_to(file_path, url, redownload=False, quiet=False, https=None):
@@ -45,16 +46,16 @@ class Extract:
 		with verbose.quiet(quiet):
 			if extract_path is None:
 				if file_path.suffix:
-					extract_path = file_path.with_suffix('')
+					self.extract_path = file_path.with_suffix('')
 				else:
-					extract_path = file_path.with_name(file_path.name + '_dir')
+					self.extract_path = file_path.with_name(file_path.name + '_dir')
 			else:
-				extract_path = pathlib.Path(extract_path).expanduser()
-			if extract_path.exists():
-				logger.info('%s already exists!' % extract_path)
+				self.extract_path = pathlib.Path(extract_path).expanduser()
+			if self.extract_path.exists():
+				logger.info('%s already exists!' % self.extract_path)
 				return
-			if not self.unzip(file_path, extract_path):
-				self.untar(file_path, extract_path)
+			if not self.unzip(file_path, self.extract_path):
+				self.untar(file_path, self.extract_path)
 	
 	def tqdm(self, items):
 		if verbose.is_quiet():
@@ -66,7 +67,10 @@ class Extract:
 			with zipfile.ZipFile(file_path) as csf:
 				logger.info('Extracting %s ...' % file_path)
 				for entry_path in self.tqdm(csf.infolist()):
-					entry_path.filename = entry_path.filename.encode('cp437').decode('cp866')
+					try:
+						entry_path.filename = entry_path.filename.encode('cp437').decode('cp866')
+					except UnicodeEncodeError:
+						pass
 					csf.extract(entry_path, extract_path)
 				logger.info('Extracted to %s' % extract_path)
 		except zipfile.BadZipFile:
@@ -93,7 +97,7 @@ class GetLink:
 		urlparse = urllib.parse.urlparse( url )
 		out_path = pathlib.Path(file_path).expanduser().resolve()
 		urlpath = pathlib.Path(urlparse.path)
-		if file_path[-1:] == '/':
+		if isinstance(file_path, str) and file_path[-1:] == '/':
 			out_path = out_path / urlpath.name
 		if not redownload and out_path.exists():
 			logger.info('%s already exists!' % out_path)
