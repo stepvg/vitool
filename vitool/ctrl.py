@@ -1,6 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import logging, contextlib
+from itertools import islice
+
+
+def batched(iterable, length, stride=1, start=0, stop=None):
+	iterator = islice(iterable, start, stop)
+	tail = list(islice(iterator, length))
+	while len(tail) == length:
+		yield iter(tail)
+		del tail[:stride]
+		tail += islice(iterator, stride)
 
 
 class Verbose:
