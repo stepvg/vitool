@@ -9,8 +9,8 @@ def batched(iterable, length, stride=1, start=0, stop=None):
 	tail = list(islice(iterator, length))
 	while len(tail) == length:
 		yield iter(tail)
-		del tail[:stride]
 		tail += islice(iterator, stride)
+		del tail[:stride]
 
 
 class Verbose:
