@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import logging, contextlib
+import time, logging, contextlib
 from itertools import islice
 
 
@@ -11,6 +11,25 @@ def batched(iterable, length, stride=1, start=0, stop=None):
 		yield iter(tail)
 		tail += islice(iterator, stride)
 		del tail[:stride]
+
+
+
+class Timeit:
+	
+	def __init__(self, callback=None):
+		self.callback = callback
+		self.elapsed = 0
+		self.start = time.perf_counter()
+	
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		self.elapsed = time.perf_counter() - self.start
+		if self.callback is None:
+			return
+		self.callback(self)
+
 
 
 class Verbose:
