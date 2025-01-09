@@ -19,16 +19,22 @@ class Timeit:
 	def __init__(self, callback=None):
 		self.callback = callback
 		self.elapsed = 0
-		self.start = time.perf_counter()
+		self.now = time.perf_counter()
 	
 	def __enter__(self):
 		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
-		self.elapsed = time.perf_counter() - self.start
-		if self.callback is None:
-			return
-		self.callback(self)
+		self.measure()
+	
+	def measure(self, callback=None):
+		now = time.perf_counter()
+		self.elapsed = now - self.now
+		self.now = now
+		if callback is not None:
+			callback(self)
+		elif self.callback is not None:
+			self.callback(self)
 
 
 
