@@ -3,20 +3,19 @@
 import pathlib, zipfile, tarfile
 import logging, urllib, requests, http
 from tqdm import tqdm
-from .ctrl import Verbose
+from .profiling import Verbose, TimeitFunc, ArgsResFunc
 
 
 logger = logging.getLogger(__name__)
 verbose = Verbose(logger)
 
 
-def download(url, file_path='./', extract_to=True, find_url=False, redownload=False, quiet=False, https=None):
+def download(url, path='', extract_to=True, redownload=False, quiet=False, https=None):
 	with verbose.quiet(quiet):
 		if https is None:
 			https = Https()
-		url, file_path = GetLink.and_file_path(url, file_path, redownload, find_url, https=https)
-		if url is not None:
-			download_to(file_path, url, redownload, https=https)
+		url, file_path = GetLink.and_file_path(url, path, redownload, https=https)
+		download_to(file_path, url, redownload, https=https)
 		if extract_to is False or extract_to is None:
 			return file_path
 		if extract_to is True:
@@ -24,6 +23,7 @@ def download(url, file_path='./', extract_to=True, find_url=False, redownload=Fa
 		else:
 			ex = Extract(file_path, extract_to)
 		return ex.extract_path
+
 
 
 def download_to(file_path, url, redownload=False, quiet=False, https=None):
@@ -36,12 +36,16 @@ def download_to(file_path, url, redownload=False, quiet=False, https=None):
 		logger.info('Downloading %s ...' % url)
 		if https is None:
 			https = Https()
-		https.download(https.query('get', url), file_path)
+		response = https.query('get', url)
+		https.download(response, file_path)
 		logger.info('%s downloaded' % file_path)
+
 
 
 class Extract:
 	
+	#~ @ArgsResFunc(logger.warning)
+	#~ @TimeitFunc()
 	def __init__(self, file_path, extract_path=None, quiet=False):
 		with verbose.quiet(quiet):
 			if extract_path is None:
@@ -90,29 +94,48 @@ class Extract:
 		return True
 
 
+
 class GetLink:
 
 	@classmethod
-	def and_file_path(Cls, url, file_path, redownload=False, find_url=False, https=None):
+	def and_file_path(Cls, url, path, redownload=False, https=None):
+		file_url, file_path = Cls.yandex( url, path, https=https )
+		if file_url:
+			return file_url, file_path
 		urlparse = urllib.parse.urlparse( url )
-		out_path = pathlib.Path(file_path).expanduser().resolve()
-		urlpath = pathlib.Path(urlparse.path)
-		if isinstance(file_path, str) and file_path[-1:] == '/':
-			out_path = out_path / urlpath.name
-		if not redownload and out_path.exists():
-			logger.info('%s already exists!' % out_path)
-			return None, out_path
-		if find_url or 'yandex' in urlparse.netloc and not urlpath.suffix:
-			return Cls.yandex( url, https=https ), out_path
-		return url, out_path
+		return url, full_path / pathlib.Path(urlparse.path).name
 
 	@classmethod
-	def yandex(Cls, url, https=None):
+	#~ @ArgsResFunc()
+	#~ @TimeitFunc(logger.warning)
+	def yandex(Cls, url, path='', https=None):
+		urlparse = urllib.parse.urlparse( url )
+		#~ import pprint; pprint.pprint(urlparse)
+		if 'yandex' not in urlparse.netloc:
+			return None, path
+		urlpath = pathlib.Path(urlparse.path)
+		parts = urlpath.parts
+		if len(parts) < 3:
+			return None, path
+		full_path = pathlib.Path(path).expanduser().resolve()
+		file_path = full_path / urlpath.name
+		if not urlpath.suffix:
+			file_path = file_path.with_suffix('.zip')
+		if len(parts) == 3:
+			if urlpath.suffix:
+				return url, file_path
+			keys = dict(public_key=url)
+		else:
+			url_path = urlpath.parents[len(parts) - 4]
+			url = urlparse._replace(path=str(url_path)).geturl()
+			ya_path = '/' + str(urlpath.relative_to(url_path))
+			keys = dict(public_key=url, path=ya_path)
 		base_url = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?'
 		if https is None:
 			https = Https()
-		response = https.query('get', base_url + urllib.parse.urlencode(dict(public_key=url)) )
-		return response.json()['href']
+		response = https.query('get', base_url + urllib.parse.urlencode(keys) )
+		return response.json()['href'], file_path
+
 
 
 class Https:

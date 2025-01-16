@@ -21,14 +21,14 @@ class Test_rfile(unittest.TestCase):
 	def test_file_defined_and_exists(self):
 		in_url = 'https://storage.yandexcloud.net/d/XXX.csv'
 		url, path_file = GetLink.and_file_path(in_url, '')
-		self.assertEqual( url, None )
-		self.assertEqual( path_file, pathlib.Path('').resolve() )
+		self.assertEqual( url, in_url )
+		self.assertEqual( path_file, pathlib.Path('').resolve() / 'XXX.csv' )
 
 	def test_file_defined_and_not_exists(self):
 		in_url = 'https://storage.yandexcloud.net/d/XXX.csv'
 		url, path_file = GetLink.and_file_path(in_url, 'TTT')
 		self.assertEqual( url, in_url )
-		self.assertEqual( path_file, pathlib.Path('').resolve() / 'TTT' )
+		self.assertEqual( path_file, pathlib.Path('').resolve() / 'TTT/XXX.csv'  )
 
 	def test_file_defined_and_(self):
 		#~ x = GetLink.and_file_path('https://disk.yandex.ru/d/XXX', 'TTT')
