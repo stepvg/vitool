@@ -103,6 +103,7 @@ class GetLink:
 		if file_url:
 			return file_url, file_path
 		urlparse = urllib.parse.urlparse( url )
+		full_path = pathlib.Path(path).expanduser().resolve()
 		return url, full_path / pathlib.Path(urlparse.path).name
 
 	@classmethod
