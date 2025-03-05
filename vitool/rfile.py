@@ -2,6 +2,7 @@
 
 import pathlib, zipfile, tarfile
 import logging, urllib, requests, http
+
 from tqdm import tqdm
 from .profiling import Verbose, TimeitFunc, ArgsResFunc
 
@@ -14,7 +15,7 @@ def download(url, path='', extract_to=True, redownload=False, quiet=False, https
 	with verbose.quiet(quiet):
 		if https is None:
 			https = Https()
-		url, file_path = GetLink.and_file_path(url, path, redownload, https=https)
+		url, file_path = GetLink.and_file_path(url, path, redownload, quiet, https=https)
 		download_to(file_path, url, redownload, https=https)
 		if extract_to is False or extract_to is None:
 			return file_path
@@ -95,47 +96,72 @@ class Extract:
 
 
 
-class GetLink:
+class YandexDisk:
+	
+	def __init__(self, url, https=None):
+		self.https = https
+		if isinstance(url, urllib.parse.ParseResult):
+			self.urlparse = url
+		else:
+			self.urlparse = urllib.parse.urlparse( url )
+		urlpath = pathlib.Path(self.urlparse.path)
+		self.parts = urlpath.parts
+		if self.parts[1] != 'd' or len(self.parts) < 3:
+			raise ValueError('URL not from Yandex disk!', url)
+	
+	def gen_name(self):
+		file_name = pathlib.Path(self.parts[-1])
+		if not file_name.suffix:
+			file_name = file_name.with_suffix('.zip')
+		return str(file_name)
 
-	@classmethod
-	def and_file_path(Cls, url, path, redownload=False, https=None):
-		file_url, file_path = Cls.yandex( url, path, https=https )
-		if file_url:
-			return file_url, file_path
-		urlparse = urllib.parse.urlparse( url )
-		full_path = pathlib.Path(path).expanduser().resolve()
-		return url, full_path / pathlib.Path(urlparse.path).name
+	def for_download(self):
+		if len(self.parts) == 3:
+			keys = dict(public_key=self.urlparse.geturl())
+		else:
+			url_key = ('',) + self.parts[1:3]
+			ya_path = ('',) + self.parts[3:]
+			url_key = self.urlparse._replace(path='/'.join(url_key)).geturl()
+			keys = dict(public_key=url_key, path='/'.join(ya_path) )
+		#~ print('+++', keys)
+		base_url = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?'
+		if self.https is None:
+			self.https = Https()
+		response = self.https.query('get', base_url + urllib.parse.urlencode(keys) )
+		ans = response.json()
+		href_parsed = urllib.parse.urlparse( ans['href'] )
+		for k, v in urllib.parse.parse_qs( href_parsed.query ).items():
+			ans[k] = v[0]
+		return ans
+
+
+
+class GetLink:
 
 	@classmethod
 	#~ @ArgsResFunc()
 	#~ @TimeitFunc(logger.warning)
-	def yandex(Cls, url, path='', https=None):
-		urlparse = urllib.parse.urlparse( url )
-		#~ import pprint; pprint.pprint(urlparse)
-		if 'yandex' not in urlparse.netloc:
-			return None, path
-		urlpath = pathlib.Path(urlparse.path)
-		parts = urlpath.parts
-		if len(parts) < 3:
-			return None, path
+	def and_file_path(Cls, url, path, redownload=False, quiet=False, https=None):
 		full_path = pathlib.Path(path).expanduser().resolve()
-		file_path = full_path / urlpath.name
-		if not urlpath.suffix:
-			file_path = file_path.with_suffix('.zip')
-		if len(parts) == 3:
-			if urlpath.suffix:
-				return url, file_path
-			keys = dict(public_key=url)
-		else:
-			url_path = urlpath.parents[len(parts) - 4]
-			url = urlparse._replace(path=str(url_path)).geturl()
-			ya_path = '/' + str(urlpath.relative_to(url_path))
-			keys = dict(public_key=url, path=ya_path)
-		base_url = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?'
-		if https is None:
-			https = Https()
-		response = https.query('get', base_url + urllib.parse.urlencode(keys) )
-		return response.json()['href'], file_path
+		urlparse = urllib.parse.urlparse( url )
+		with verbose.quiet(quiet):
+			try:
+				ya_disk = YandexDisk( urlparse, https=https )
+			except ValueError:
+				pass
+			else:
+				file_path = full_path / ya_disk.gen_name()
+				if not redownload and file_path.exists():
+					logger.info('%s already exists!' % file_path)
+					return None, file_path
+				fordwn = ya_disk.for_download()
+				if fordwn.get('fsize'):
+					file_path = full_path / fordwn['filename']
+					if not redownload and file_path.exists():
+						logger.info('%s already exists!' % file_path)
+						return None, file_path
+				return fordwn['href'], file_path
+			return url, full_path / pathlib.Path(urlparse.path).name
 
 
 
@@ -161,6 +187,7 @@ class Https:
 
 	def query(self, mode, url, **kwargs):
 		response = getattr(self.session, mode)(url, stream=True, verify=True, **kwargs)
+		response.raise_for_status()
 		if self.use_cookies:
 			self.save_cookies()
 		return response

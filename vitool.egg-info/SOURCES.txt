@@ -3,6 +3,7 @@ README.md
 setup.py
 vitool/__init__.py
 vitool/ctrl.py
+vitool/profiling.py
 vitool/rfile.py
 vitool/svis.py
 vitool/tests.py
