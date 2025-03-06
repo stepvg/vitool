@@ -1,8 +1,8 @@
 Metadata-Version: 2.1
 Name: vitool
-Version: 1.0.8
+Version: 1.0.9
 Summary: A simple tools.
-Home-page: https://github.com/your_package/homepage/
+Home-page: https://github.com/stepvg/vitool
 Author: stepvg
 Author-email: stepvg@ya.ru
 Classifier: Programming Language :: Python :: 3.7

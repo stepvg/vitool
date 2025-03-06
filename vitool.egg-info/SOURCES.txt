@@ -5,10 +5,9 @@ vitool/__init__.py
 vitool/ctrl.py
 vitool/profiling.py
 vitool/rfile.py
-vitool/svis.py
 vitool/tests.py
-vitool/waytf.py
 vitool.egg-info/PKG-INFO
 vitool.egg-info/SOURCES.txt
 vitool.egg-info/dependency_links.txt
+vitool.egg-info/requires.txt
 vitool.egg-info/top_level.txt
