@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 verbose = Verbose(logger)
 
 
+
 def download(url, path='', extract_to=True, redownload=False, quiet=False, https=None):
 	with verbose.quiet(quiet):
 		if https is None:
@@ -20,9 +21,8 @@ def download(url, path='', extract_to=True, redownload=False, quiet=False, https
 		if extract_to is False or extract_to is None:
 			return file_path
 		if extract_to is True:
-			ex = Extract(file_path)
-		else:
-			ex = Extract(file_path, extract_to)
+			extract_to = None
+		ex = Extract(file_path, extract_to, reextract=redownload)
 		return ex.extract_path
 
 
@@ -47,49 +47,52 @@ class Extract:
 	
 	#~ @ArgsResFunc(logger.warning)
 	#~ @TimeitFunc()
-	def __init__(self, file_path, extract_path=None, quiet=False):
+	def __init__(self, file_path, extract_path=None, reextract=False, quiet=False):
+		file_path = pathlib.Path(file_path).expanduser()
 		with verbose.quiet(quiet):
 			if extract_path is None:
-				if file_path.suffix:
-					self.extract_path = file_path.with_suffix('')
-				else:
-					self.extract_path = file_path.with_name(file_path.name + '_dir')
+				self.extract_path = file_path.parent
 			else:
 				self.extract_path = pathlib.Path(extract_path).expanduser()
-			if self.extract_path.exists():
-				logger.info('%s already exists!' % self.extract_path)
-				return
-			if not self.unzip(file_path, self.extract_path):
-				self.untar(file_path, self.extract_path)
+			if not self.unzip(file_path, self.extract_path, reextract):
+				self.untar(file_path, self.extract_path, reextract)
 	
 	def tqdm(self, items):
 		if verbose.is_quiet():
 			return items
 		return tqdm(items, desc='Extracted', total=len(items), mininterval=2, unit="items")
 	
-	def unzip(self, file_path, extract_path):
+	def unzip(self, file_path, extract_path, reextract=False):
 		try:
 			with zipfile.ZipFile(file_path) as csf:
 				logger.info('Extracting %s ...' % file_path)
+				extracted_count = 0
 				for entry_path in self.tqdm(csf.infolist()):
 					try:
 						entry_path.filename = entry_path.filename.encode('cp437').decode('cp866')
 					except UnicodeEncodeError:
 						pass
-					csf.extract(entry_path, extract_path)
-				logger.info('Extracted to %s' % extract_path)
+					extract_object = extract_path / entry_path.filename
+					if not extract_object.exists() or reextract:
+						csf.extract(entry_path, extract_path)
+						extracted_count += 1
+				logger.info('Extracted %d entry to %s' % (extracted_count, extract_path) )
 		except zipfile.BadZipFile:
 			return False
 		return True
 
-	def untar(self, file_path, extract_path):
+	def untar(self, file_path, extract_path, reextract=False):
 		""" gzip, bzip2, lzma"""
 		try:
 			with tarfile.open(file_path) as csf:
 				logger.info('Extracting %s ...' % file_path)
+				extracted_count = 0
 				for entry_path in self.tqdm(csf.getmembers()):
-					csf.extract(entry_path, extract_path)
-				logger.info('Extracted to %s' % extract_path)
+					extract_object = extract_path / entry_path.name
+					if not extract_object.exists() or reextract:
+						csf.extract(entry_path, extract_path)
+						extracted_count += 1
+				logger.info('Extracted %d entry to %s' % (extracted_count, extract_path) )
 		except tarfile.ReadError:
 			return False
 		return True
@@ -123,7 +126,6 @@ class YandexDisk:
 			ya_path = ('',) + self.parts[3:]
 			url_key = self.urlparse._replace(path='/'.join(url_key)).geturl()
 			keys = dict(public_key=url_key, path='/'.join(ya_path) )
-		#~ print('+++', keys)
 		base_url = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?'
 		if self.https is None:
 			self.https = Https()
