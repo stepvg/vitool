@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import time, logging, contextlib
+import time
 from itertools import islice
 
 
@@ -26,8 +26,10 @@ class Timer:
 
 	def stop(self):
 		self.interval = 0
+	
+	def __bool__(self):
+		return bool(self.interval)
 
-	# check
 	def on_time(self, callback, *args, **kwargs):
 		if not self.interval:
 			return
