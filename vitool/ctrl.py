@@ -17,15 +17,19 @@ def batched(iterable, length, stride=1, start=0, stop=None):
 
 class Timer:
 
-	def __init__(self, interval=0):
-		self.start(interval)
+	def __init__(self, seconds=0):
+		self.every(seconds)
 
-	def start(self, interval):
-		self.interval = interval
-		self.start = time.perf_counter()
+	def every(self, seconds):
+		self.interval = seconds
+		if not self.interval:
+			self.event_time = 0
+			return
+		if not self.event_time:
+			self.event_time = self.interval + time.perf_counter()
 
-	def stop(self):
-		self.interval = 0
+	def disable(self):
+		self.every(0)
 	
 	def __bool__(self):
 		return bool(self.interval)
@@ -34,8 +38,9 @@ class Timer:
 		if not self.interval:
 			return
 		now = time.perf_counter()
-		d = now - self.start
-		if d > self.interval:
-			self.start = now if d - self.interval > self.interval else (self.start + self.interval)
+		if now > self.event_time:
 			callback(*args, **kwargs)
+			self.event_time += self.interval
+			if now > self.event_time:
+				self.event_time = self.interval + now
 
