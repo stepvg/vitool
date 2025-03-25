@@ -18,6 +18,7 @@ def batched(iterable, length, stride=1, start=0, stop=None):
 class Timer:
 
 	def __init__(self, seconds=0):
+		self.event_time = 0
 		self.every(seconds)
 
 	def every(self, seconds):
