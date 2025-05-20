@@ -17,31 +17,44 @@ def batched(iterable, length, stride=1, start=0, stop=None):
 
 class Timer:
 
-
+	
 	def __init__(self, seconds=0):
-		self.event_time = 0
+		self.enabled = False
 		self.every(seconds)
+
+
+	def __bool__(self):
+		return self.enabled
+
+
+	def disable(self):
+		self.enabled = False
+
+	
+	def alarm(self, event_timestamp):
+		self.event_time = event_timestamp
+		self.interval = event_timestamp - time.perf_counter()
+		self.enabled = True
+
+
+	def wake_up(self, in_seconds):
+		self.event_time = in_seconds + time.perf_counter()
+		self.interval = in_seconds
+		self.enabled = True
 
 
 	def every(self, seconds):
 		self.interval = seconds
-		if not self.interval:
-			self.event_time = 0
+		if not seconds:
+			self.enabled = False
 			return
-		if not self.event_time:
+		if not self.enabled:
+			self.enabled = True
 			self.event_time = self.interval + time.perf_counter()
 
 
-	def disable(self):
-		self.every(0)
-
-	
-	def __bool__(self):
-		return bool(self.interval)
-
-
 	def on_time(self, callback=None, *args, **kwargs):
-		if self.interval:
+		if self.enabled:
 			now = time.perf_counter()
 			if now > self.event_time:
 				if callback is not None:
