@@ -1,24 +1,26 @@
 # -*- coding: utf-8 -*-
 
+import re
 from setuptools import setup, find_packages
 from pathlib import Path
 
+PKG_NAME = 'vitool'
+GITHUB_URL = f'https://github.com/stepvg/{PKG_NAME}'
+
+def get_version():
+	content = Path(f'{PKG_NAME}/__init__.py').read_text(encoding='utf-8')
+	return re.search(r"__version__ = '(.+)'", content).group(1)
 
 if __name__ == '__main__':
 
-	readme = ( Path() / 'README.md' ).read_text(encoding='UTF-8')
+	readme = Path('README.md').read_text(encoding='utf-8')
 
 	setup(
 		license='GPLv3',
 		name='vitool',
-		version='1.0.12',
 		author='stepvg',
 		author_email='vyac.st@gmail.com',
 		description='A simple tools.',
-		long_description=readme,
-		long_description_content_type='text/markdown',
-		url='https://github.com/stepvg/vitool',
-		packages=find_packages(),
 		install_requires=['tqdm', 'requests>=2'],
 		classifiers=[
 			'Programming Language :: Python :: 3',
@@ -30,14 +32,8 @@ if __name__ == '__main__':
 			'Topic :: Software Development :: Tools',
 			'Topic :: Utilities',
 		],
-		project_urls={
-			'Homepage': 'https://github.com/stepvg/vitool',
-			'Source': 'https://github.com/stepvg/vitool',
-			'Bug Tracker': 'https://github.com/stepvg/vitool/issues',
-			'Documentation': 'https://github.com/stepvg/vitool#readme',
-		},
 		keywords=[
-			'vitool',
+			PKG_NAME,
 			'timer',
 			'profiling',
 			'logging',
@@ -48,4 +44,15 @@ if __name__ == '__main__':
 			'utils',
 			'timeit',
 		],
+		project_urls={
+			'Homepage': GITHUB_URL,
+			'Source': GITHUB_URL,
+			'Bug Tracker': f'{GITHUB_URL}/issues',
+			'Documentation': f'{GITHUB_URL}#readme',
+		},
+		version=get_version(),
+		long_description=readme,
+		long_description_content_type='text/markdown',
+		url=GITHUB_URL,
+		packages=find_packages(),
 	)
