@@ -33,7 +33,8 @@ class TimeitFunc:
 		self.callback = callback
 		self.format = format
 		self.function = lambda : None
-	
+		self.timeit = Timeit(self.callback, self)
+
 	def __str__(self):
 		return self.format.format(function=self.function)
 
@@ -41,7 +42,7 @@ class TimeitFunc:
 		self.function = function
 		@wraps(function)
 		def wrap(*args, **kwargs):
-			with Timeit(self.callback, self) as tm:
+			with self.timeit:
 				return function(*args, **kwargs)
 		return wrap
 
@@ -49,16 +50,22 @@ class TimeitFunc:
 
 class Timeit:
 	
-	def __init__(self, callback=None, target='Target'):
+	def __init__(self, callback=None, target='Target', format='{self.target} ran for {self.elapsed_ms:.3f} ms.'):
 		self.elapsed = 0
 		self.callback = callback
 		self.target = target
+		self.format = format
 		self.now = time.perf_counter()
 	
+	@property
+	def elapsed_ms(self):
+		return self.elapsed * 1000
+
 	def __str__(self):
-		return f'{self.target} ran for {self.elapsed*1000:.3f} ms.'
+		return self.format.format(self=self)
 	
 	def __enter__(self):
+		self.now = time.perf_counter()
 		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
