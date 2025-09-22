@@ -1,6 +1,9 @@
 # vitool
 
-`vitool` is a Python toolkit that provides utilities for working with remote files, including downloading, caching, and extracting archives.
+`vitool` is a Python toolkit that provides utilities for 
+- working with remote files, including downloading, caching, extracting archives, 
+- and lightweight control utilities,
+- and logging, profiling, and control helpers.
 
 ---
 
@@ -73,6 +76,146 @@ Otherwise, a new requests.Session is created.
 
 ---
 
+## `ctrl.py` — Control Utilities
+
+`vitool/ctrl.py` provides small but useful utilities for batching iterables and scheduling events with timers.
+
+---
+
+### ✨ Features
+
+- ✅ Generate overlapping or sliding batches from any iterable  
+- ✅ Schedule periodic, delayed, or one-time events  
+- ✅ Simple API for enabling/disabling timers  
+- ✅ Support for callbacks triggered at the right time  
+
+---
+
+### 📖 Example Usage
+
+#### 📦 Functions
+
+`batched(iterable, length, stride=1, start=0, stop=None)`
+Generate overlapping batches of fixed length from an iterable.
+
+```python
+from vitool import ctrl
+
+# Create overlapping batches
+for batch in ctrl.batched(range(10), length=4, stride=2, start=1, stop=10):
+    print(tuple(batch))
+# Output: (1, 2, 3, 4), (3, 4, 5, 6), (5, 6, 7, 8)
+```
+
+---
+
+#### 📦 Classes
+
+`Timer(seconds=0)`
+A simple timer class for scheduling periodic or delayed events.
+
+Main methods:
+- `disable()`
+	disable the timer
+- `alarm(event_timestamp)`
+	set timer to trigger at specific time
+- `wake_up(in_seconds)`
+	trigger after a delay
+- `every(seconds)`
+	set periodic timer
+- `on_time(callback=None, *args, **kwargs)`
+	check if timer is due and run callback
+
+```python
+from vitool import ctrl
+import time
+
+# Run a callback every 2 seconds
+def hello():
+    print("Hello, world!")
+
+count = 5
+timer = ctrl.Timer(2)
+while count:
+    if timer.on_time(hello):
+        count -= 1			# every 2 seconds
+    time.sleep(0.1)
+timer.disable()
+```
+
+---
+
+## `profiling.py` — Logging & Profiling Utilities
+
+`vitool/profiling.py` contains decorators and helper classes for logging function calls, measuring execution time, and controlling verbosity.
+
+---
+
+### ✨ Features
+
+- ✅ Log function arguments and results with customizable formatting  
+- ✅ Measure execution time with decorators or context managers  
+- ✅ Control logging verbosity (quiet/verbose modes)  
+- ✅ Integration with standard `logging`  
+
+---
+
+### 📖 Example Usage
+
+#### 📦 Classes
+
+`Timeit(callback=None, target="Target", format=...)`
+Context manager for measuring execution time.
+
+`ArgsResFunc(callback=print, args_format=..., result_format=...)`
+A decorator that logs function arguments and results.
+
+`TimeitFunc(callback=print, format=..., timeit_format=...)`
+Decorator class to measure execution time of functions.
+
+```python
+import logging
+from vitool import profiling as pfl
+
+logger = logging.getLogger(__name__)
+
+@pfl.ArgsResFunc()
+@pfl.TimeitFunc()
+def add(a, b):
+    return a + b
+
+with pfl.Timeit(logger.warning, target=add, format='{self.target} ran for {self.elapsed:.6f} s.'):
+    add(2, 3)
+
+# Output:
+# __main__.add[(2, 3), {}]
+# __main__.add ran for 0.0001 ms.
+# __main__.add -> 5
+# <function add at 0x7f5187b45620> ran for 0.000036 s.
+```
+
+---
+
+`Verbose(logger, logging_format=...)`
+Helper class to control logging verbosity.
+
+```python
+import logging
+from vitool import profiling as pfl
+
+logger = logging.getLogger("demo")
+verbose = pfl.Verbose(logger)
+
+with verbose.quiet(False):
+	logger.info("This is visible")
+logger.info("This is hidden")
+
+# Output:
+# 2025-09-23 02:55:57,406 [INFO:demo] - This is visible
+```
+
+---
+
 ## 🚀 Running Tests
 
 Run all unit tests with verbose output:
@@ -82,4 +225,5 @@ python -m unittest -v
 ```
 
 ---
+
 
