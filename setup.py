@@ -29,7 +29,6 @@ if __name__ == '__main__':
 			'Topic :: System :: Monitoring',
 			'Topic :: Software Development :: Libraries',
 			'Topic :: Software Development :: Quality Assurance',
-			'Topic :: Software Development :: Tools',
 			'Topic :: Utilities',
 		],
 		keywords=[
